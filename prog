@@ -1,0 +1,85 @@
+import mysql.connector
+from mysql.connector import Error
+
+class ArticuloDB:
+    """
+    Clase para gestionar los artículos en la base de datos.
+    """
+
+    def __init__(self, host="localhost", user="root", password="", database="bd2"):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+
+    def __enter__(self):
+        """ Abre la conexión a la base de datos. """
+        try:
+            self.conexion = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            return self
+        except Error as e:
+            print(f"Error al conectar con la base de datos: {e}")
+            return None
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """ Cierra la conexión al finalizar. """
+        if self.conexion.is_connected():
+            self.conexion.close()
+            print("Conexión cerrada correctamente.")
+
+    def insertar_articulo(self, descripcion, precio):
+        """ Inserta un nuevo artículo en la tabla. """
+        query = "INSERT INTO articulos (descripcion, precio) VALUES (%s, %s)"
+        try:
+            with self.conexion.cursor() as cursor:
+                cursor.execute(query, (descripcion, precio))
+                self.conexion.commit()
+                print(f"Artículo '{descripcion}' agregado correctamente.")
+        except Error as e:
+            print(f"Error al insertar el artículo: {e}")
+
+    def consultar_articulo(self, codigo):
+        """ Consulta un artículo por su código. """
+        query = "SELECT descripcion, precio FROM articulos WHERE codigo = %s"
+        try:
+            with self.conexion.cursor(dictionary=True) as cursor:
+                cursor.execute(query, (codigo,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    print(f"\n=== Artículo Encontrado ===")
+                    print(f"Descripción: {resultado['descripcion']}")
+                    print(f"Precio: {resultado['precio']}")
+                else:
+                    print("Artículo no encontrado.")
+        except Error as e:
+            print(f"Error al consultar el artículo: {e}")
+
+    def listar_articulos(self):
+        """ Recupera y muestra todos los artículos de la tabla. """
+        query = "SELECT codigo, descripcion, precio FROM articulos"
+        try:
+            with self.conexion.cursor(dictionary=True) as cursor:
+                cursor.execute(query)
+                resultados = cursor.fetchall()
+                if resultados:
+                    print("\n=== Listado de Artículos ===")
+                    for articulo in resultados:
+                        print(f"Código: {articulo['codigo']}, "
+                              f"Descripción: {articulo['descripcion']}, "
+                              f"Precio: {articulo['precio']}")
+                else:
+                    print("No hay artículos registrados.")
+        except Error as e:
+            print(f"Error al recuperar los artículos: {e}")
+
+
+# Menú Interactivo
+def main():
+    with ArticuloDB() as db:
+        if db is None:
+            print("No se pudo conectar a la base
